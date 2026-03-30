@@ -1,13 +1,12 @@
-import streamlit as st
+import datetime
 import requests
 import pandas as pd
-import datetime
-import time
+import streamlit as st
 
 # -----------------------------
 # APP CONFIG
 # -----------------------------
-st.set_page_config(page_title="🚀 REAL-TIME CRYPTO PRICE TRACKER", layout="wide")
+st.set_page_config(page_title="REAL-TIME CRYPTO PRICE TRACKER", layout="wide")
 
 # -----------------------------
 # CUSTOM CSS
@@ -17,7 +16,7 @@ st.markdown("""
     .stApp {
         background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
         color: white;
-        font-family: 'Segoe UI', sans-serif;
+        font-family: "Segoe UI", sans-serif;
     }
     h1, h2, h3, h4 { color: #FFD700 !important; }
     section[data-testid="stSidebar"] { background-color: #111; color: white; }
@@ -52,11 +51,15 @@ st.markdown("""
         0% { transform: translateX(100%); }
         100% { transform: translateX(-100%); }
     }
-    .footer {
-        margin-top: 50px;
+    .kpi-card {
+        background: #1e293b;
+        padding: 12px;
+        border-radius: 10px;
         text-align: center;
-        font-size: 14px;
-        color: #aaa;
+        font-size: 18px;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.5rem;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -64,7 +67,7 @@ st.markdown("""
 # -----------------------------
 # HEADER
 # -----------------------------
-st.title("🚀 Multi-Coin Real-Time Crypto Tracker")
+st.title("REAL-TIME CRYPTO PRICE TRACKER")
 
 st.markdown("""
 <div style="
@@ -107,6 +110,8 @@ selected_coins = st.sidebar.multiselect(
     default=["₿ Bitcoin (BTC)", "♦ Ethereum (ETH)", "🟡 Binance Coin (BNB)"]
 )
 refresh_rate = st.sidebar.slider("Refresh rate (seconds)", 5, 60, 10)
+auto_refresh = st.sidebar.toggle("Auto refresh", value=True)
+refresh_now = st.sidebar.button("Refresh now")
 
 # Sidebar developer details (moved here instead of inside main page)
 st.sidebar.markdown("---")
@@ -122,14 +127,19 @@ AI Engineer | Data Scientist | Economist
 # -----------------------------
 # FETCH PRICE FUNCTION
 # -----------------------------
-def get_price(coin_id: str):
-    url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
+def get_prices(coin_ids):
+    ids = ",".join(coin_ids)
+    url = (
+        "https://api.coingecko.com/api/v3/simple/price"
+        f"?ids={ids}&vs_currencies=usd"
+    )
     try:
         response = requests.get(url, timeout=10)
+        response.raise_for_status()
         data = response.json()
-        return data[coin_id]["usd"]
+        return {coin_id: data.get(coin_id, {}).get("usd") for coin_id in coin_ids}
     except Exception:
-        return None
+        return {coin_id: None for coin_id in coin_ids}
 
 # -----------------------------
 # GLOBAL ALERT TICKER
@@ -139,23 +149,31 @@ global_alerts = []
 # -----------------------------
 # TRACK + DISPLAY PER COIN
 # -----------------------------
-cols = st.columns(len(selected_coins))  # one column per coin
+if not selected_coins:
+    st.warning("Select at least one coin from the sidebar.")
+    st.stop()
+
+if "history" not in st.session_state:
+    st.session_state.history = {}
+
+coin_ids = [COINS[name] for name in selected_coins]
+latest_prices = get_prices(coin_ids)
+timestamp = datetime.datetime.now()
+
+cols = st.columns(len(selected_coins))
 
 for i, coin_name in enumerate(selected_coins):
     coin_id = COINS[coin_name]
-    price = get_price(coin_id)
+    price = latest_prices.get(coin_id)
 
     with cols[i]:
         st.subheader(coin_name)
 
         if price is not None:
-            # Save history per coin
-            if "history" not in st.session_state:
-                st.session_state.history = {}
             if coin_id not in st.session_state.history:
                 st.session_state.history[coin_id] = []
 
-            st.session_state.history[coin_id].append({"time": datetime.datetime.now(), "price": price})
+            st.session_state.history[coin_id].append({"time": timestamp, "price": price})
 
             # Keep last 200 records
             if len(st.session_state.history[coin_id]) > 200:
@@ -193,20 +211,7 @@ for i, coin_name in enumerate(selected_coins):
 
             st.markdown(f'<div class="alert {alert_class}">{alert_message}</div>', unsafe_allow_html=True)
 
-            # ✅ Custom Metric with White Font
-            st.markdown(f"""
-                <div style="
-                    background: #1e293b;
-                    padding: 15px;
-                    border-radius: 10px;
-                    text-align: center;
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: white;
-                ">
-                    💰 Price: ${price:,.2f}
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"<div class='kpi-card'>💰 Price: ${price:,.2f}</div>", unsafe_allow_html=True)
 
             # Chart
             st.line_chart(df.set_index("time")["price"], height=200)
@@ -226,5 +231,8 @@ if global_alerts:
 # -----------------------------
 # AUTO REFRESH
 # -----------------------------
-time.sleep(refresh_rate)
-st.rerun()
+if auto_refresh and not refresh_now:
+    st.markdown(
+        f"<meta http-equiv='refresh' content='{refresh_rate}'>",
+        unsafe_allow_html=True,
+    )
