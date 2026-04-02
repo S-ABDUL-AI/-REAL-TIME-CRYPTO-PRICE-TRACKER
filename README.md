@@ -39,21 +39,34 @@ This dashboard solves the problem by:
 
 ```bash
 # Clone the repo
-git clone https://github.com/S-ABDUL-AI/multi-coin-crypto-tracker.git
-cd multi-coin-crypto-tracker
+git clone https://github.com/S-ABDUL-AI/-REAL-TIME-CRYPTO-PRICE-TRACKER.git
+cd -REAL-TIME-CRYPTO-PRICE-TRACKER
 
 # Create a virtual environment
 python -m venv .venv
 
 # Activate it
-source .venv/bin/activate    # Mac/Linux  
+source .venv/bin/activate    # Mac/Linux
 .venv\Scripts\activate       # Windows
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Run locally
-streamlit run streamlit_app.py
+# Run locally (Community Cloud uses app.py as entry)
+streamlit run app.py
+```
+
+### 🌐 Streamlit Community Cloud
+
+Deploy this repo from [Streamlit Community Cloud](https://share.streamlit.io/). Set **Main file path** to `app.py`.
+
+**If visitors see “You do not have access to this app or it does not exist”** (or are redirected to a Streamlit sign-in page), the deployment is **private**. Fix it while signed into the same GitHub account used to deploy:
+
+1. Open [share.streamlit.io](https://share.streamlit.io/) → your app → **⚙️ Settings** (or use **Share** in the app header).
+2. Under **Sharing** / **Who can view this app**, choose **Public** (e.g. “This app is public” / “Make this app public”).
+3. Save, wait for the app to restart, then share the `.streamlit.app` URL show in the dashboard (update any old links on your website if the subdomain changed).
+
+Private apps only work for you and explicitly invited viewers; public apps work for everyone without signing in.
 
 📊 Demo Preview
 

@@ -127,6 +127,13 @@ AI Engineer | Data Scientist | Economist
 # -----------------------------
 # FETCH PRICE FUNCTION
 # -----------------------------
+# CoinGecko asks for a descriptive User-Agent; reduces anonymous blocking on Cloud IPs.
+_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; RealTimeCryptoTracker/1.0; +https://github.com/S-ABDUL-AI/-REAL-TIME-CRYPTO-PRICE-TRACKER)",
+    "Accept": "application/json",
+}
+
+
 def get_prices(coin_ids):
     ids = ",".join(coin_ids)
     url = (
@@ -134,7 +141,7 @@ def get_prices(coin_ids):
         f"?ids={ids}&vs_currencies=usd"
     )
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers=_HEADERS, timeout=15)
         response.raise_for_status()
         data = response.json()
         return {coin_id: data.get(coin_id, {}).get("usd") for coin_id in coin_ids}
@@ -229,10 +236,8 @@ if global_alerts:
     st.markdown(f'<div class="ticker"><span>{alerts_text}</span></div>', unsafe_allow_html=True)
 
 # -----------------------------
-# AUTO REFRESH
+# AUTO REFRESH (rerun keeps session_state; full-page meta refresh would reset history)
 # -----------------------------
 if auto_refresh and not refresh_now:
-    st.markdown(
-        f"<meta http-equiv='refresh' content='{refresh_rate}'>",
-        unsafe_allow_html=True,
-    )
+    time.sleep(refresh_rate)
+    st.rerun()
