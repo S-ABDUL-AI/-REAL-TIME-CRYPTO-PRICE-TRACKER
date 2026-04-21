@@ -1,5 +1,10 @@
 # 🚀 Real-Time Multi-Coin Crypto Tracker  
 
+**Live app (Streamlit Cloud):** [https://55kx7euqkmqnbchpmb8aq9.streamlit.app/](https://55kx7euqkmqnbchpmb8aq9.streamlit.app/)  
+**Repository:** [github.com/S-ABDUL-AI/-REAL-TIME-CRYPTO-PRICE-TRACKER](https://github.com/S-ABDUL-AI/-REAL-TIME-CRYPTO-PRICE-TRACKER)
+
+Auto-refresh uses Streamlit **`@st.fragment(run_every=…)`** so the page is not blocked by a long `time.sleep` on every update; the CoinGecko call includes **24h % change** next to spot price.
+
 ### 📌 Background  
 Cryptocurrency markets operate 24/7 with **high volatility**, creating both opportunities and risks.  
 Traders and enthusiasts need **real-time tools** that provide price updates, trend monitoring, and alerts in an **easy-to-use dashboard**.  
@@ -25,7 +30,7 @@ This dashboard solves the problem by:
 - 📊 **Price history charts** (auto-updating)  
 - 📋 **Mini tables** of recent values  
 - 🛎️ **Smart alerts** (always visible at the top)  
-- ⚡ **Auto-refresh** every 5–60 seconds  
+- ⚡ **Auto-refresh** every 5–60 seconds (non-blocking fragment timer)  
 - 📱 Fully responsive → works on **desktop & mobile**  
 
 ### 🛠️ Tech Stack  

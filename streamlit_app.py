@@ -1,161 +1,172 @@
 import datetime
-import requests
+from typing import Any, Dict, List, Optional, Tuple
+
 import pandas as pd
+import requests
 import streamlit as st
 
 # -----------------------------
 # APP CONFIG
 # -----------------------------
-st.set_page_config(page_title="REAL-TIME CRYPTO PRICE TRACKER", layout="wide")
+st.set_page_config(
+    page_title="Real-time crypto price tracker",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 # -----------------------------
 # CUSTOM CSS
 # -----------------------------
-st.markdown("""
+st.markdown(
+    """
     <style>
     .stApp {
         background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-        color: white;
-        font-family: "Segoe UI", sans-serif;
+        color: #f8fafc;
+        font-family: "Segoe UI", system-ui, sans-serif;
     }
     h1, h2, h3, h4 { color: #FFD700 !important; }
-    section[data-testid="stSidebar"] { background-color: #111; color: white; }
+    section[data-testid="stSidebar"] { background-color: #0f172a; color: #f8fafc; }
     section[data-testid="stSidebar"] label,
-    section[data-testid="stSidebar"] div { color: white !important; }
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] div { color: #e2e8f0 !important; }
     .alert {
-        padding: 10px;
+        padding: 10px 14px;
         border-radius: 8px;
-        font-size: 16px;
-        font-weight: bold;
+        font-size: 15px;
+        font-weight: 600;
         text-align: center;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
     }
-    .alert-success { background-color: #14532d; color: #22c55e; border: 2px solid #22c55e; }
-    .alert-danger { background-color: #7f1d1d; color: #ef4444; border: 2px solid #ef4444; }
-    .alert-info { background-color: #1e3a8a; color: #60a5fa; border: 2px solid #60a5fa; }
+    .alert-success { background-color: #14532d; color: #86efac; border: 2px solid #22c55e; }
+    .alert-danger { background-color: #7f1d1d; color: #fecaca; border: 2px solid #ef4444; }
+    .alert-info { background-color: #1e3a8a; color: #bfdbfe; border: 2px solid #60a5fa; }
     .ticker {
-        background: #000;
-        padding: 10px;
+        background: #020617;
+        padding: 12px 14px;
         border-radius: 8px;
-        color: #FFD700;
-        font-weight: bold;
-        white-space: nowrap;
-        overflow: hidden;
-    }
-    .ticker span {
-        display: inline-block;
-        padding-right: 50px;
-        animation: ticker 20s linear infinite;
-    }
-    @keyframes ticker {
-        0% { transform: translateX(100%); }
-        100% { transform: translateX(-100%); }
+        color: #fde047;
+        font-weight: 600;
+        border: 1px solid #334155;
+        margin-bottom: 14px;
     }
     .kpi-card {
         background: #1e293b;
-        padding: 12px;
+        padding: 14px;
         border-radius: 10px;
         text-align: center;
-        font-size: 18px;
+        font-size: 17px;
         font-weight: 700;
-        color: white;
+        color: #f8fafc;
         margin-bottom: 0.5rem;
+        border: 1px solid #334155;
     }
+    .muted { color: #94a3b8; font-size: 0.85rem; }
     </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # -----------------------------
 # HEADER
 # -----------------------------
-st.title("REAL-TIME CRYPTO PRICE TRACKER")
+st.title("Real-time crypto price tracker")
 
-st.markdown("""
+st.markdown(
+    """
 <div style="
-    background-color: rgba(255, 255, 255, 0.1); 
-    padding: 20px; 
-    border-radius: 12px; 
-    color: white; 
-    font-size: 16px;
+    background-color: rgba(255, 255, 255, 0.08);
+    padding: 18px 20px;
+    border-radius: 12px;
+    color: #f1f5f9;
+    font-size: 15px;
+    border: 1px solid rgba(255,255,255,0.12);
 ">
-<h3 style="color: #FFD700;">👋 Welcome!</h3>
-<p>
-This dashboard shows <b>live prices</b> for multiple cryptocurrencies.
+<p style="margin:0 0 8px 0;color:#FFD700;font-weight:700;">How to use this app</p>
+<p style="margin:0;">
+Pick coins and a <b>refresh interval</b> in the sidebar. This panel calls the <b>CoinGecko</b> public API, keeps a short
+<b>local history</b> for charts, and compares the <b>oldest vs newest</b> point in the last <b>5 minutes</b> to label
+<b>spike / drop / stable</b> (±2% rule from the README).
 </p>
-
-✅ Each coin has:  
-- Live price updates  
-- Smart alerts (🚀 spike / 📉 drop / ℹ️ stable over 5 minutes)  
-- Charts of recent price movements  
-- Mini tables of recent values  
-
-👉 The goal is to look and feel like a <b>trading assistant panel</b>.  
-
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # -----------------------------
 # COINS CONFIG
 # -----------------------------
 COINS = {
     "₿ Bitcoin (BTC)": "bitcoin",
-    "♦ Ethereum (ETH)": "ethereum",
+    "Ξ Ethereum (ETH)": "ethereum",
     "🟡 Binance Coin (BNB)": "binancecoin",
     "🔷 Cardano (ADA)": "cardano",
-    "🌞 Solana (SOL)": "solana",
+    "◎ Solana (SOL)": "solana",
 }
 
 selected_coins = st.sidebar.multiselect(
-    "Select Cryptocurrencies to Track",
+    "Coins to track",
     list(COINS.keys()),
-    default=["₿ Bitcoin (BTC)", "♦ Ethereum (ETH)", "🟡 Binance Coin (BNB)"]
+    default=["₿ Bitcoin (BTC)", "Ξ Ethereum (ETH)", "🟡 Binance Coin (BNB)"],
 )
-refresh_rate = st.sidebar.slider("Refresh rate (seconds)", 5, 60, 10)
+refresh_rate = st.sidebar.slider("Refresh interval (seconds)", 5, 60, 10)
 auto_refresh = st.sidebar.toggle("Auto refresh", value=True)
-refresh_now = st.sidebar.button("Refresh now")
+refresh_now = st.sidebar.button("Refresh now", use_container_width=True)
 
-# Sidebar developer details (moved here instead of inside main page)
-st.sidebar.markdown("---")
-st.sidebar.markdown("""
-**👨‍💻 Developer**  
-Sherriff Abdul-Hamid
-AI Engineer | Data Scientist | Economist  
-📧 [Sherriffhamid001@gmail.com](mailto:Sherriffhamid001@gmail.com)  
-🌐 [GitHub: S-ABDUL-AI](https://github.com/S-ABDUL-AI) | 
-🔗 [LinkedIn](https://www.linkedin.com/in/abdul-hamid-sherriff-08583354/)
-""")
+st.sidebar.divider()
+st.sidebar.markdown(
+    """
+**Developer**  
+Sherriff Abdul-Hamid · AI / data / economics  
+📧 [Email](mailto:Sherriffhamid001@gmail.com)  
+🌐 [GitHub](https://github.com/S-ABDUL-AI) · [Repo](https://github.com/S-ABDUL-AI/-REAL-TIME-CRYPTO-PRICE-TRACKER) · [LinkedIn](https://www.linkedin.com/in/abdul-hamid-sherriff-08583354/)
+"""
+)
 
-# -----------------------------
-# FETCH PRICE FUNCTION
-# -----------------------------
-# CoinGecko asks for a descriptive User-Agent; reduces anonymous blocking on Cloud IPs.
+if refresh_now:
+    st.rerun()
+
 _HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; RealTimeCryptoTracker/1.0; +https://github.com/S-ABDUL-AI/-REAL-TIME-CRYPTO-PRICE-TRACKER)",
+    "User-Agent": (
+        "Mozilla/5.0 (compatible; RealTimeCryptoTracker/1.1; "
+        "+https://github.com/S-ABDUL-AI/-REAL-TIME-CRYPTO-PRICE-TRACKER)"
+    ),
     "Accept": "application/json",
 }
 
 
-def get_prices(coin_ids):
+def get_prices(coin_ids: List[str]) -> Tuple[Dict[str, Dict[str, Optional[float]]], Optional[str]]:
+    """Return per-coin usd + 24h change, and optional error message for the UI."""
+    if not coin_ids:
+        return {}, None
     ids = ",".join(coin_ids)
     url = (
         "https://api.coingecko.com/api/v3/simple/price"
-        f"?ids={ids}&vs_currencies=usd"
+        f"?ids={ids}&vs_currencies=usd&include_24hr_change=true"
     )
     try:
-        response = requests.get(url, headers=_HEADERS, timeout=15)
+        response = requests.get(url, headers=_HEADERS, timeout=20)
+        if response.status_code == 429:
+            return {cid: {"usd": None, "chg24": None} for cid in coin_ids}, (
+                "CoinGecko rate limit (429). Wait a minute or raise the refresh interval."
+            )
         response.raise_for_status()
-        data = response.json()
-        return {coin_id: data.get(coin_id, {}).get("usd") for coin_id in coin_ids}
-    except Exception:
-        return {coin_id: None for coin_id in coin_ids}
+        data: Dict[str, Any] = response.json()
+        out: Dict[str, Dict[str, Optional[float]]] = {}
+        for coin_id in coin_ids:
+            blob = data.get(coin_id) or {}
+            usd = blob.get("usd")
+            chg = blob.get("usd_24h_change")
+            out[coin_id] = {
+                "usd": float(usd) if usd is not None else None,
+                "chg24": float(chg) if chg is not None else None,
+            }
+        return out, None
+    except requests.RequestException as exc:
+        return {cid: {"usd": None, "chg24": None} for cid in coin_ids}, f"Price request failed: {exc}"
 
-# -----------------------------
-# GLOBAL ALERT TICKER
-# -----------------------------
-global_alerts = []
 
-# -----------------------------
-# TRACK + DISPLAY PER COIN
-# -----------------------------
 if not selected_coins:
     st.warning("Select at least one coin from the sidebar.")
     st.stop()
@@ -163,81 +174,103 @@ if not selected_coins:
 if "history" not in st.session_state:
     st.session_state.history = {}
 
-coin_ids = [COINS[name] for name in selected_coins]
-latest_prices = get_prices(coin_ids)
-timestamp = datetime.datetime.now()
+_run_every = datetime.timedelta(seconds=int(refresh_rate)) if auto_refresh else None
 
-cols = st.columns(len(selected_coins))
 
-for i, coin_name in enumerate(selected_coins):
-    coin_id = COINS[coin_name]
-    price = latest_prices.get(coin_id)
+@st.fragment(run_every=_run_every)
+def _live_dashboard() -> None:
+    """Periodic refresh lives here so the UI is not blocked by ``time.sleep`` on every run."""
+    ticker_ph = st.empty()
+    coin_ids = [COINS[name] for name in selected_coins]
+    rows, err_msg = get_prices(coin_ids)
+    ts = datetime.datetime.now()
 
-    with cols[i]:
-        st.subheader(coin_name)
+    if err_msg:
+        st.error(err_msg)
 
-        if price is not None:
-            if coin_id not in st.session_state.history:
-                st.session_state.history[coin_id] = []
+    spike_drop_messages: List[str] = []
+    lookback_minutes = 5
 
-            st.session_state.history[coin_id].append({"time": timestamp, "price": price})
+    cols = st.columns(len(selected_coins))
 
-            # Keep last 200 records
-            if len(st.session_state.history[coin_id]) > 200:
-                st.session_state.history[coin_id] = st.session_state.history[coin_id][-200:]
+    for i, coin_name in enumerate(selected_coins):
+        coin_id = COINS[coin_name]
+        blob = rows.get(coin_id) or {}
+        price = blob.get("usd")
+        chg24 = blob.get("chg24")
 
-            df = pd.DataFrame(st.session_state.history[coin_id])
+        with cols[i]:
+            st.subheader(coin_name)
 
-            # Alerts
-            lookback_minutes = 5
-            cutoff_time = datetime.datetime.now() - datetime.timedelta(minutes=lookback_minutes)
+            if price is None:
+                st.error("Could not load this price (network, rate limit, or API error).")
+                continue
+
+            hist = st.session_state.history.setdefault(coin_id, [])
+            hist.append({"time": ts, "price": float(price)})
+            if len(hist) > 200:
+                del hist[:-200]
+
+            df = pd.DataFrame(hist)
+            cutoff_time = ts - datetime.timedelta(minutes=lookback_minutes)
             df_recent = df[df["time"] >= cutoff_time]
 
             alert_message = ""
             alert_class = "alert-info"
 
             if len(df_recent) > 1:
-                old_price = df_recent.iloc[0]["price"]
-                new_price = df_recent.iloc[-1]["price"]
-                change_pct = ((new_price - old_price) / old_price) * 100
+                old_price = float(df_recent.iloc[0]["price"])
+                new_price = float(df_recent.iloc[-1]["price"])
+                if old_price == 0:
+                    change_pct = 0.0
+                else:
+                    change_pct = (new_price - old_price) / old_price * 100.0
 
                 if change_pct >= 2:
-                    alert_message = f"🚀 {coin_name} spiked +{change_pct:.2f}% in last {lookback_minutes} min!"
+                    alert_message = f"🚀 Spike +{change_pct:.2f}% vs start of last {lookback_minutes} min window"
                     alert_class = "alert-success"
-                    global_alerts.append(alert_message)
+                    spike_drop_messages.append(f"{coin_name.split('(')[0].strip()}: +{change_pct:.1f}%")
                 elif change_pct <= -2:
-                    alert_message = f"📉 {coin_name} dropped {change_pct:.2f}% in last {lookback_minutes} min!"
+                    alert_message = f"📉 Drop {change_pct:.2f}% vs start of last {lookback_minutes} min window"
                     alert_class = "alert-danger"
-                    global_alerts.append(alert_message)
+                    spike_drop_messages.append(f"{coin_name.split('(')[0].strip()}: {change_pct:.1f}%")
                 else:
-                    alert_message = f"ℹ️ Stable ({change_pct:.2f}% in {lookback_minutes} min)"
+                    alert_message = f"ℹ️ Stable ({change_pct:+.2f}% over last {lookback_minutes} min in this session)"
                     alert_class = "alert-info"
             else:
-                alert_message = "⏳ Not enough data yet"
+                alert_message = "⏳ Collecting points — need two samples in the 5‑minute window for a move label"
                 alert_class = "alert-info"
 
             st.markdown(f'<div class="alert {alert_class}">{alert_message}</div>', unsafe_allow_html=True)
 
-            st.markdown(f"<div class='kpi-card'>💰 Price: ${price:,.2f}</div>", unsafe_allow_html=True)
+            delta_txt = None
+            if chg24 is not None:
+                delta_txt = f"{chg24:+.2f}% vs 24h"
+            st.metric("Spot (USD)", f"${float(price):,.2f}", delta=delta_txt)
 
-            # Chart
-            st.line_chart(df.set_index("time")["price"], height=200)
+            chart_df = df.set_index("time")[["price"]].rename(columns={"price": "USD"})
+            st.caption("Session history (this browser tab)")
+            st.line_chart(chart_df, height=220)
 
-            # Table
-            st.dataframe(df.tail(5).set_index("time"))
-        else:
-            st.error("❌ Could not fetch price")
+            tail = df.tail(5).copy()
+            tail["time"] = tail["time"].dt.strftime("%H:%M:%S")
+            st.dataframe(tail.set_index("time"), use_container_width=True, height=160)
 
-# -----------------------------
-# SHOW GLOBAL ALERTS BAR (on top of page)
-# -----------------------------
-if global_alerts:
-    alerts_text = " | ".join(global_alerts)
-    st.markdown(f'<div class="ticker"><span>{alerts_text}</span></div>', unsafe_allow_html=True)
+    if spike_drop_messages:
+        banner = " · ".join(spike_drop_messages)
+        ticker_ph.markdown(
+            f'<div class="ticker">🔔 <b>Live moves (±2% / {lookback_minutes} min)</b> — {banner}</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        ticker_ph.markdown(
+            f'<div class="ticker">🔔 No ±2% moves in the last {lookback_minutes} minutes of this session '
+            f"— prices still update on your interval. Last pull: {ts.strftime('%H:%M:%S')}</div>",
+            unsafe_allow_html=True,
+        )
 
-# -----------------------------
-# AUTO REFRESH (rerun keeps session_state; full-page meta refresh would reset history)
-# -----------------------------
-if auto_refresh and not refresh_now:
-    time.sleep(refresh_rate)
-    st.rerun()
+
+_live_dashboard()
+
+# Note: ``time.sleep`` + ``st.rerun()`` was removed — it delayed the entire page on every refresh.
+# Auto-refresh is handled by ``@st.fragment(run_every=...)`` (Streamlit ≥ 1.33).
