@@ -63,6 +63,40 @@ st.markdown(
         border: 1px solid #334155;
     }
     .muted { color: #94a3b8; font-size: 0.85rem; }
+    /* KPI / metrics — force light text on dark gradient (Streamlit defaults are dark-on-light). */
+    [data-testid="stMetric"] {
+        background: rgba(15, 23, 42, 0.65) !important;
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+        border: 1px solid #334155 !important;
+    }
+    [data-testid="stMetric"] label,
+    [data-testid="stMetric"] p,
+    [data-testid="stMetric"] span,
+    [data-testid="stMetric"] div {
+        color: #f8fafc !important;
+    }
+    [data-testid="stMetricValue"] {
+        color: #ffffff !important;
+    }
+    [data-testid="stMetricValue"] * {
+        color: #ffffff !important;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #e2e8f0 !important;
+    }
+    [data-testid="stMetricLabel"] * {
+        color: #e2e8f0 !important;
+    }
+    [data-testid="stMetricDelta"] {
+        color: #f1f5f9 !important;
+    }
+    [data-testid="stMetricDelta"] * {
+        color: inherit !important;
+    }
+    [data-testid="stMetricDelta"] svg {
+        fill: currentColor !important;
+    }
     </style>
 """,
     unsafe_allow_html=True,
